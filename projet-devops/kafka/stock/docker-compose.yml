@@ -1,0 +1,68 @@
+
+version: '3.8'
+
+services:
+ 
+  
+  
+
+
+ 
+
+  stock-consumer:
+    container_name: stock-consumer
+    build: ./stock-consumer
+    restart: on-failure
+   
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      STRAPI_TOKEN: "e2f4a106ff4b30692e53e0d0d013f0cf99ca179791c297d76775d9a4cb292f88fbf7befa0639c4176b3e1f25b4a7baba513baa247ebbdd346a92db7186c1bafb30edd61cf5ec1b60a8bb29616e5b54eee3e87fb147c5a01be6118f01a617687e941d258b98bde84c00e4c128663c619305d5428503e8da6cbd63be71d5b27916"
+      STRAPI_URL: http://strapi:1337
+      TOPIC: stock
+      BEGINNING: "false"
+      ERROR_TOPIC: errors
+    
+      
+    
+    networks:
+      - kafka-net
+
+
+
+
+
+
+  
+
+  stock-producer:
+    container_name: stock-producer
+    build: ./stock-producer
+    restart: on-failure
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      TOPIC: stock
+      FILE_NAME: ./stocks.csv
+    
+    
+   
+    networks:
+      - kafka-net
+
+  
+  
+
+
+
+
+networks:
+  kafka-net:
+    name: kafka-net
+    driver: bridge
+    external: true
+    
+    
+    

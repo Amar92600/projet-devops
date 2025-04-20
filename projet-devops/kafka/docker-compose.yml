@@ -1,0 +1,151 @@
+
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - kafka-net
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://172.17.0.1:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - kafka-net
+
+  
+  kafka-init:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "
+      until nc -z kafka 9092; do echo 'Waiting for Kafka...'; sleep 2; done;
+      kafka-topics --create --topic product --bootstrap-server 172.17.0.1:9092 --replication-factor 1 --partitions 3 &&
+      kafka-topics --create --topic event --bootstrap-server 172.17.0.1:9092 --replication-factor 1 --partitions 3 &&
+      kafka-topics --create --topic stock --bootstrap-server 172.17.0.1:9092 --replication-factor 1 --partitions 3 &&
+      kafka-topics --create --topic error --bootstrap-server 172.17.0.1:9092 --replication-factor 1 --partitions 1"
+  
+    networks:
+      - kafka-net
+
+  
+  
+  product-consumer:
+    container_name: product-consumer
+    build: ./product-consumer
+    restart: unless-stopped
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      STRAPI_TOKEN: "e2f4a106ff4b30692e53e0d0d013f0cf99ca179791c297d76775d9a4cb292f88fbf7befa0639c4176b3e1f25b4a7baba513baa247ebbdd346a92db7186c1bafb30edd61cf5ec1b60a8bb29616e5b54eee3e87fb147c5a01be6118f01a617687e941d258b98bde84c00e4c128663c619305d5428503e8da6cbd63be71d5b27916"
+      STRAPI_URL: http://strapi:1337
+      TOPIC: product
+      BEGINNING: "false"
+      ERROR_TOPIC: errors
+
+    depends_on:
+      - kafka-init
+    networks:
+      - kafka-net
+
+  event-consumer:
+    container_name: event-consumer
+    build: ./event-consumer
+    restart: unless-stopped
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      STRAPI_TOKEN: "e2f4a106ff4b30692e53e0d0d013f0cf99ca179791c297d76775d9a4cb292f88fbf7befa0639c4176b3e1f25b4a7baba513baa247ebbdd346a92db7186c1bafb30edd61cf5ec1b60a8bb29616e5b54eee3e87fb147c5a01be6118f01a617687e941d258b98bde84c00e4c128663c619305d5428503e8da6cbd63be71d5b27916"
+      STRAPI_URL: http://strapi:1337
+      TOPIC: event
+      BEGINNING: "false"
+      ERROR_TOPIC: errors
+    
+    depends_on:
+      - kafka-init
+    
+    networks:
+      - kafka-net
+
+
+
+
+  product-producer:
+    container_name: product-producer
+    build: ./product-producer
+    restart: unless-stopped
+   
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      STRAPI_TOKEN: "e2f4a106ff4b30692e53e0d0d013f0cf99ca179791c297d76775d9a4cb292f88fbf7befa0639c4176b3e1f25b4a7baba513baa247ebbdd346a92db7186c1bafb30edd61cf5ec1b60a8bb29616e5b54eee3e87fb147c5a01be6118f01a617687e941d258b98bde84c00e4c128663c619305d5428503e8da6cbd63be71d5b27916"
+      STRAPI_URL: http://strapi:1337
+      TOPIC: product
+      ERROR_TOPIC: errors
+      FILE_NAME: ./products.txt
+    
+    depends_on:
+      - kafka-init
+    
+    networks:
+      - kafka-net
+
+
+
+  event-producer:
+    container_name: event-producer
+    build: ./event-producer
+    restart: unless-stopped
+   
+    environment:
+      BROKER_1: 172.17.0.1:9092
+      BROKER_2: 172.17.0.1:9092
+      BROKER_3: 172.17.0.1:9092
+      TOPIC: event
+      FILE_NAME: ./events.csv
+      ERROR_TOPIC: errors
+    
+    depends_on:
+      - kafka-init
+    
+    networks:
+      - kafka-net
+  
+
+
+
+  
+  
+
+
+
+
+networks:
+  kafka-net:
+    name: kafka-net
+    driver: bridge
+    external: true
+    
+    
+    
