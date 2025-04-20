@@ -1,4 +1,4 @@
-## Projet403
+## Projet DEVOPS
 
 **Binôme** : Malik Tounsi (21139496), Adam Chaara (21113891)
 
